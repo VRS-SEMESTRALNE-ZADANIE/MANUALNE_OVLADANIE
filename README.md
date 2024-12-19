@@ -1,48 +1,49 @@
-OVLADANIE-AUTICKA
-Ovládanie autíčka pomocou joysticku cez RFM bezdrôtovú komunikáciu
+# OVLÁDANIE AUTÍČKA
 
-Popis
+Tento projekt umožňuje ovládanie modelu autíčka pomocou joysticku, ktorý je priamo napojený na mikrokontrolér STM32. Pôvodne bola zamýšľaná komunikácia cez RFM moduly s využitím SPI protokolu, avšak tento prístup bol nakoniec zjednodušený. Výsledný systém priamo prenáša signály z joysticku do mikrokontroléra pomocou káblov a ovláda rýchlosť a smer pohybu autíčka cez riadiacu dosku MD25, ktorá ovláda motory. Taktiež sme doimplementovali ovládanie pomocou tlaćítok.
 
-Tento projekt umožňuje ovládanie modelu autíčka pomocou joysticku, pričom komunikácia medzi joystickom a autíčkom prebieha bezdrôtovo cez moduly RFM . Projekt využíva mikrokontroléry pre implementáciu oboch častí systému – ovládania (joystick) a prijímača (autíčko).
+## Funkčnosť
 
-Požiadavky
+### Popis zapojenia
+Joystick bol napojený priamo na STM32 cez analógové vstupy, kde bol jeho signál spracovaný cez prevodník ADC . Signál z joysticku špecifikuje dve osy:
+- **X-os**: Rýchlosť a smer pohybu autíčka dopredu alebo dozadu.
+- **Y-os**: Otáčanie autíčka doľava alebo doprava.
 
-• Hardvér:
+Joystick bol napojený priamo na STM32 cez analógové vstupy, kde bol jeho signál spracovaný cez prevodník ADC . Signál z joysticku špecifikuje dve osy:
+- **X-os**: Rýchlosť a smer pohybu autíčka dopredu alebo dozadu.
+- **Y-os**: Otáčanie autíčka doľava alebo doprava.
 
-o 2x mikrokontrolér (STM32F303K8)
+Prevodník ADC konvertuje analógové hodnoty z joysticku na digitálne signály, ktoré sa následne posielajú do druhého STM32 mikrokontroléra nachádzajúceho sa na autíčku. Tento STM32 prijíma tieto hodnoty cez káblové prepojenie a cez protokol USART odosiela príkazy do riadiacej dosky MD25.
 
-o 2x RFM modul (prístupný v škole)
+Riadiaca doska MD25 je priamo pripojená na motory autíčka a interpretuje príkazy od mikrokontroléra. Na základe prijatých hodnôt nastavuje:
+- **Rýchlosť motorov**: Pohyb dopredu alebo dozadu.
+- **Diferenciálne riadenie**: Otáčanie autíčka podľa rozdielnej rýchlosti ľavého a pravého motora.
 
-o Joystick modul (4 tlačítka)
+### Ovládanie cez tlačidlá
+Okrem ovládania joystickom sme implementovali aj ovládanie cez štyri tlačidlá, ktoré boli napojené na STM32 cez digitálne vstupy. Každé tlačidlo vykonáva jednu zo špecifických funkcií:
+- **Tlačidlo 1**: Pohyb dopredu.
+- **Tlačidlo 2**: Pohyb dozadu.
+- **Tlačidlo 3**: Otáčanie doľava.
+- **Tlačidlo 4**: Otáčanie doprava.
 
-o Model autíčka s motormi a ovládacími obvodmi (model prístupný v škole alebo vytvoriť vlastný???)
+STM32 pri stlačení tlačidla deteguje zmenu stavu a následne vygeneruje príslušný príkaz, ktorý sa cez USART protokol odosiela do dosky MD25 na ovládanie motorov. Medzi ovládaním cez joystick a tlačídlami sa dá prepínať stlačením joysticku.
 
-Ďalšie body závisia od odpovede na bod 4:
+### Detailný priebeh spracovania signálov
+1. **Joystick a ADC spracovanie:**
+   - Pri pohybe joysticku sa mení jeho napätie na osiach X a Y.
+   - ADC v STM32 tieto analógové signály konvertuje na digitálne hodnoty (0 – 1024).
+   - Tieto hodnoty určujú smer a intenzitu pohybu.
 
-o Napájanie pre mikrokontrolér a motory(batéria)
+2. **Prenos signálov do STM na autíčku:**
+   - Digitálne hodnoty sa cez káble posielajú do STM32 na autíčku.
+   - Mikrokontrolér ich interpretuje a cez USART protokol odosiela príkazy do dosky MD25.
 
-o Konektory, vodiče a potenciálne ďalšie komponenty podľa potreby
+3. **MD25 a motory:**
+   - MD25 riadi rýchlosť a smery motorov na základe prijatých príkazov, tým že priamo do ovládacích registorv nahrávame konkrétne hodnoty.
+   - Motory sa pohybujú synchronizovane alebo diferencovane v závislosti od hodnôt príkazov.
 
-o Návrh diferenciálneho podvozku
+4. **Pohyb autíčka:**
+   - Rýchlosť pohybu je riadená zmenou PWM signálu na doske MD25.
+   - Diferenciálne ovládanie zabezpečuje otáčanie podľa rozdielu medzi rýchlosťou ľavého a pravého motora.
 
-Funkčnosť
 
-• Ovládač (joystick) odosiela cez RFM modul údaje o pohybe joysticku a stlačení tlačidla.
-
-• Autíčko (prijímač) prijíma tieto údaje cez druhý RFM modul a interpretuje ich, aby ovládalo pohyb motorov.
-
-o Pohyb na osi X joysticku riadi rýchlosť a smer pohybu autíčka vpred a vzad.
-
-o Pohyb na osi Y joysticku riadi otáčanie autíčka vľavo alebo vpravo.
-
-Rozdelenie práce:
-
-Tím : Žolo(Zoltán Sármány), Matúš (Matúš Tetliak), Džihi(Samuel Mihálik), Kubo (Jakub Tinák)
-
-Konfigurácia pinov/ prehľadávanie registrov: Žolo
-
-Logika pohybu: Matúš
-
-Logika RFM komunikácie/práca s gitom :Džihi
-
-Zapájanie hardwaru/vyhľadávanie informácií: Kubo
